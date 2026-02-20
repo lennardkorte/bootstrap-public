@@ -7,6 +7,7 @@ HM_FLAKE="$HM_CONFIG_DIR#default"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 
 # --- 1. Nix ---
+echo "v8"
 echo "=== 1. Installing Nix ==="
 if ! command -v nix &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
