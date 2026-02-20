@@ -37,7 +37,7 @@ fi
 # --- 4. GitHub auth ---
 echo "=== 4. GitHub authentication ==="
 if ! gh auth status &> /dev/null; then
-  gh auth login --hostname github.com --git-protocol ssh --web
+  gh auth login --hostname github.com --git-protocol ssh
 else
   echo "Already authenticated with GitHub."
 fi
