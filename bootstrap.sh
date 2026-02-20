@@ -7,7 +7,7 @@ HM_FLAKE="$HM_CONFIG_DIR#default"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 
 # --- 1. Nix ---
-echo "v6"
+echo "v7"
 echo "=== 1. Installing Nix ==="
 if ! command -v nix &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -108,7 +108,7 @@ GH_TOKEN="$(gh auth token)"
 
 # --- 11. Home Manager ---
 echo "=== 11. Applying Home Manager config ==="
-nix run home-manager/master -- switch --flake "$HM_FLAKE" --impure
+nix run home-manager/master -- switch --flake "$HM_FLAKE" --impure -b bak
 
 # --- 12. Swap gh ---
 echo "=== 12. Replacing temporary gh with managed one ==="
