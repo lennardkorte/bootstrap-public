@@ -11,17 +11,18 @@ nix_gh() { nix shell nixpkgs#gh --command gh "$@"; }
 
 # --- 1. Nix ---
 echo "=== 1. Installing Nix ==="
+NIX_DAEMON_SH="/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
 if command -v nix &> /dev/null; then
-  echo "Nix already available, skipping."
-elif [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
-  echo "Nix installed but not in PATH, sourcing..."
-  . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  echo "Nix already on PATH, skipping."
+elif [ -f "$NIX_DAEMON_SH" ]; then
+  echo "Nix installed but not on PATH, sourcing..."
+  . "$NIX_DAEMON_SH"
 else
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-  if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
-    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  if [ -f "$NIX_DAEMON_SH" ]; then
+    . "$NIX_DAEMON_SH"
   else
-    echo "ERROR: Nix installation failed."
+    echo "ERROR: Nix installation failed. Please resolve the issue and re-run."
     exit 1
   fi
 fi
