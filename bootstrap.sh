@@ -4,9 +4,10 @@ set -euo pipefail
 DOTFILES_REPO="lennardkorte/bootstrap"
 HM_CONFIG_DIR="$HOME/.config/home-manager"
 HM_FLAKE="$HM_CONFIG_DIR#default"
+SSH_KEY="$HOME/.ssh/id_ed25519"
 
 # --- 1. Nix ---
-echo "v3"
+echo "v4"
 echo "=== 1. Installing Nix ==="
 if ! command -v nix &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -37,7 +38,6 @@ fi
 
 # --- 4. SSH key ---
 echo "=== 4. Setting up SSH key ==="
-SSH_KEY="$HOME/.ssh/id_ed25519"
 if [ ! -f "$SSH_KEY" ]; then
   ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -q
   echo "Generated new SSH key."
@@ -48,13 +48,19 @@ fi
 # --- 5. GitHub auth ---
 echo "=== 5. GitHub authentication ==="
 if ! gh auth status &> /dev/null; then
-  gh auth login --hostname github.com --git-protocol ssh --ssh-key-title "bootstrap-$(hostname)" --web
+  gh auth login --hostname github.com --git-protocol ssh --web
 else
   echo "Already authenticated with GitHub."
 fi
 
-# --- 6. Clone config ---
-echo "=== 6. Cloning dotfiles ==="
+# --- 6. Upload SSH key ---
+echo "=== 6. Uploading SSH key to GitHub ==="
+gh ssh-key add "${SSH_KEY}.pub" --title "bootstrap-$(hostname)" 2>/dev/null \
+  && echo "SSH key uploaded." \
+  || echo "SSH key already on GitHub, skipping."
+
+# --- 7. Clone config ---
+echo "=== 7. Cloning dotfiles ==="
 if [ -d "$HM_CONFIG_DIR/.git" ]; then
   echo "Config exists, pulling latest..."
   git -C "$HM_CONFIG_DIR" pull
@@ -63,8 +69,8 @@ else
   gh repo clone "$DOTFILES_REPO" "$HM_CONFIG_DIR"
 fi
 
-# --- 7. User config ---
-echo "=== 7. Setting up user config ==="
+# --- 8. User config ---
+echo "=== 8. Setting up user config ==="
 USER_NIX="$HM_CONFIG_DIR/user.nix"
 if [ ! -f "$USER_NIX" ]; then
   read -rp "Full name (for git): " full_name
@@ -80,16 +86,16 @@ else
   echo "user.nix already exists, skipping."
 fi
 
-# --- 8. Capture auth token ---
-echo "=== 8. Capturing GitHub auth token ==="
+# --- 9. Capture auth token ---
+echo "=== 9. Capturing GitHub auth token ==="
 GH_TOKEN="$(gh auth token)"
 
-# --- 9. Home Manager ---
-echo "=== 9. Applying Home Manager config ==="
+# --- 10. Home Manager ---
+echo "=== 10. Applying Home Manager config ==="
 nix run home-manager/master -- switch --flake "$HM_FLAKE" --impure
 
-# --- 10. Swap gh ---
-echo "=== 10. Replacing temporary gh with managed one ==="
+# --- 11. Swap gh ---
+echo "=== 11. Replacing temporary gh with managed one ==="
 nix profile remove '.*gh.*' 2>/dev/null || true
 
 HM_BIN="$HOME/.nix-profile/bin"
@@ -97,8 +103,8 @@ echo "$GH_TOKEN" | "$HM_BIN/gh" auth login --with-token
 unset GH_TOKEN
 echo "GitHub auth transferred."
 
-# --- 11. Clone dev repos ---
-echo "=== 11. Cloning dev repos ==="
+# --- 12. Clone dev repos ---
+echo "=== 12. Cloning dev repos ==="
 "$HM_BIN/setup-repos"
 
 echo "=== Done! Restart your shell or run: exec \$SHELL ==="
