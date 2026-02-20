@@ -47,4 +47,14 @@ echo "=== 6. Cleaning up temporary gh install ==="
 # Home Manager now manages gh, so remove the imperative one
 nix profile remove '.*gh.*' 2>/dev/null || true
 
+echo "=== 7. Authenticating gh (Home Manager-managed) ==="
+# The new gh binary from Home Manager has no auth state, so re-login
+HM_GH="$HOME/.nix-profile/bin/gh"
+if [ -x "$HM_GH" ] && ! "$HM_GH" auth status &> /dev/null; then
+  echo "Re-authenticating with the Home Manager-managed gh..."
+  "$HM_GH" auth login
+else
+  echo "gh already authenticated or not managed by Home Manager."
+fi
+
 echo "=== Done! Restart your shell or run: source ~/.bashrc ==="
