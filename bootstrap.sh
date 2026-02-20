@@ -10,7 +10,6 @@ SSH_KEY="$HOME/.ssh/id_ed25519"
 nix_gh() { nix shell nixpkgs#gh --command gh "$@"; }
 
 # --- 1. Nix ---
-echo "v9"
 echo "=== 1. Installing Nix ==="
 if ! command -v nix &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
