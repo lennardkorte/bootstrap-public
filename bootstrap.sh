@@ -40,16 +40,33 @@ else
   gh repo clone "$DOTFILES_REPO" "$HM_CONFIG_DIR"
 fi
 
-# --- 5. Capture auth token before cleanup ---
-echo "=== 5. Capturing GitHub auth token ==="
+# --- 5. User config ---
+echo "=== 5. Setting up user config ==="
+USER_NIX="$HM_CONFIG_DIR/user.nix"
+if [ ! -f "$USER_NIX" ]; then
+  read -rp "Full name (for git): " full_name
+  read -rp "Email (for git): " email
+  cat > "$USER_NIX" <<EOF
+{
+  name = "$full_name";
+  email = "$email";
+}
+EOF
+  echo "Created $USER_NIX"
+else
+  echo "user.nix already exists, skipping."
+fi
+
+# --- 6. Capture auth token before cleanup ---
+echo "=== 6. Capturing GitHub auth token ==="
 GH_TOKEN="$(gh auth token)"
 
-# --- 6. Home Manager ---
-echo "=== 6. Applying Home Manager config ==="
+# --- 7. Home Manager ---
+echo "=== 7. Applying Home Manager config ==="
 nix run home-manager/master -- switch --flake "$HM_FLAKE" --impure
 
-# --- 7. Swap gh ---
-echo "=== 7. Replacing temporary gh with managed one ==="
+# --- 8. Swap gh ---
+echo "=== 8. Replacing temporary gh with managed one ==="
 nix profile remove '.*gh.*' 2>/dev/null || true
 
 HM_BIN="$HOME/.nix-profile/bin"
@@ -57,8 +74,8 @@ echo "$GH_TOKEN" | "$HM_BIN/gh" auth login --with-token
 unset GH_TOKEN
 echo "GitHub auth transferred."
 
-# --- 8. Clone dev repos ---
-echo "=== 8. Cloning dev repos ==="
+# --- 9. Clone dev repos ---
+echo "=== 9. Cloning dev repos ==="
 "$HM_BIN/setup-repos"
 
 echo "=== Done! Restart your shell or run: exec \$SHELL ==="
