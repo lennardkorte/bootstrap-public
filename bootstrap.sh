@@ -7,7 +7,6 @@ HM_FLAKE="$HM_CONFIG_DIR#default"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 
 # --- 1. Nix ---
-echo "v4"
 echo "=== 1. Installing Nix ==="
 if ! command -v nix &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -59,8 +58,14 @@ gh ssh-key add "${SSH_KEY}.pub" --title "bootstrap-$(hostname)" 2>/dev/null \
   && echo "SSH key uploaded." \
   || echo "SSH key already on GitHub, skipping."
 
-# --- 7. Clone config ---
-echo "=== 7. Cloning dotfiles ==="
+# --- 7. Load SSH key into agent ---
+echo "=== 7. Loading SSH key into agent ==="
+eval "$(ssh-agent -s)" > /dev/null
+ssh-add "$SSH_KEY" 2>/dev/null
+echo "SSH key loaded."
+
+# --- 8. Clone config ---
+echo "=== 8. Cloning dotfiles ==="
 if [ -d "$HM_CONFIG_DIR/.git" ]; then
   echo "Config exists, pulling latest..."
   git -C "$HM_CONFIG_DIR" pull
@@ -69,8 +74,8 @@ else
   gh repo clone "$DOTFILES_REPO" "$HM_CONFIG_DIR"
 fi
 
-# --- 8. User config ---
-echo "=== 8. Setting up user config ==="
+# --- 9. User config ---
+echo "=== 9. Setting up user config ==="
 USER_NIX="$HM_CONFIG_DIR/user.nix"
 if [ ! -f "$USER_NIX" ]; then
   read -rp "Full name (for git): " full_name
@@ -86,16 +91,16 @@ else
   echo "user.nix already exists, skipping."
 fi
 
-# --- 9. Capture auth token ---
-echo "=== 9. Capturing GitHub auth token ==="
+# --- 10. Capture auth token ---
+echo "=== 10. Capturing GitHub auth token ==="
 GH_TOKEN="$(gh auth token)"
 
-# --- 10. Home Manager ---
-echo "=== 10. Applying Home Manager config ==="
+# --- 11. Home Manager ---
+echo "=== 11. Applying Home Manager config ==="
 nix run home-manager/master -- switch --flake "$HM_FLAKE" --impure
 
-# --- 11. Swap gh ---
-echo "=== 11. Replacing temporary gh with managed one ==="
+# --- 12. Swap gh ---
+echo "=== 12. Replacing temporary gh with managed one ==="
 nix profile remove '.*gh.*' 2>/dev/null || true
 
 HM_BIN="$HOME/.nix-profile/bin"
@@ -103,8 +108,8 @@ echo "$GH_TOKEN" | "$HM_BIN/gh" auth login --with-token
 unset GH_TOKEN
 echo "GitHub auth transferred."
 
-# --- 12. Clone dev repos ---
-echo "=== 12. Cloning dev repos ==="
+# --- 13. Clone dev repos ---
+echo "=== 13. Cloning dev repos ==="
 "$HM_BIN/setup-repos"
 
 echo "=== Done! Restart your shell or run: exec \$SHELL ==="
