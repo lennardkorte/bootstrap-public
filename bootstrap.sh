@@ -40,21 +40,27 @@ else
   gh repo clone "$DOTFILES_REPO" "$HM_CONFIG_DIR"
 fi
 
-echo "=== 5. Installing Home Manager and applying config ==="
+echo "=== 5. Capturing GitHub auth token ==="
+GH_TOKEN="$(gh auth token)"
+
+echo "=== 6. Installing Home Manager and applying config ==="
 nix run home-manager/master -- switch --flake "$HM_CONFIG_DIR"
 
-echo "=== 6. Cleaning up temporary gh install ==="
+echo "=== 7. Cleaning up temporary gh install ==="
 # Home Manager now manages gh, so remove the imperative one
 nix profile remove '.*gh.*' 2>/dev/null || true
 
-echo "=== 7. Authenticating gh (Home Manager-managed) ==="
-# The new gh binary from Home Manager has no auth state, so re-login
+echo "=== 8. Transferring GitHub auth to Home Manager-managed gh ==="
+# Pipe the saved token into the new gh so the user doesn't have to log in again
 HM_GH="$HOME/.nix-profile/bin/gh"
-if [ -x "$HM_GH" ] && ! "$HM_GH" auth status &> /dev/null; then
-  echo "Re-authenticating with the Home Manager-managed gh..."
-  "$HM_GH" auth login
+if [ -x "$HM_GH" ]; then
+  echo "$GH_TOKEN" | "$HM_GH" auth login --with-token
+  echo "GitHub auth transferred successfully."
 else
-  echo "gh already authenticated or not managed by Home Manager."
+  echo "Warning: Home Manager gh not found at expected path, you may need to run 'gh auth login' manually."
 fi
+
+# Clear token from memory
+unset GH_TOKEN
 
 echo "=== Done! Restart your shell or run: source ~/.bashrc ==="
