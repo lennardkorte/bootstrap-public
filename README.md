@@ -13,7 +13,6 @@ Installs Nix, authenticates with GitHub, clones the private config repo, applies
 ## Usage
 
 ```bash
-home-manager switch --flake ~/.config/home-manager#default --impure  # apply changes
-setup-repos                                                          # re-clone any missing repos
-nix flake update --flake ~/.config/home-manager && home-manager switch --flake ~/.config/home-manager#default --impure  # update packages
+hms   # apply config changes + clone any missing repos
+hmu   # update all packages + apply
 ```
