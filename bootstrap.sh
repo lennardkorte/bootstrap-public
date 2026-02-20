@@ -6,8 +6,11 @@ HM_CONFIG_DIR="$HOME/.config/home-manager"
 HM_FLAKE="$HM_CONFIG_DIR#default"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 
+# Helper: run gh without installing it to the profile
+nix_gh() { nix shell nixpkgs#gh --command gh "$@"; }
+
 # --- 1. Nix ---
-echo "v8"
+echo "v9"
 echo "=== 1. Installing Nix ==="
 if ! command -v nix &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -28,16 +31,8 @@ else
   echo "Experimental features already enabled, skipping."
 fi
 
-# --- 3. Temporary gh ---
-echo "=== 3. Installing gh (temporary) ==="
-if ! command -v gh &> /dev/null; then
-  nix profile add nixpkgs#gh
-else
-  echo "gh already installed, skipping."
-fi
-
-# --- 4. SSH key ---
-echo "=== 4. Setting up SSH key ==="
+# --- 3. SSH key ---
+echo "=== 3. Setting up SSH key ==="
 if [ ! -f "$SSH_KEY" ]; then
   ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -q
   echo "Generated new SSH key."
@@ -45,22 +40,22 @@ else
   echo "SSH key already exists, skipping."
 fi
 
-# --- 5. GitHub auth ---
-echo "=== 5. GitHub authentication ==="
-if ! gh auth status &> /dev/null; then
-  gh auth login --hostname github.com --git-protocol ssh --web
+# --- 4. GitHub auth ---
+echo "=== 4. GitHub authentication ==="
+if ! nix_gh auth status &> /dev/null; then
+  nix_gh auth login --hostname github.com --git-protocol ssh --web
 else
   echo "Already authenticated with GitHub."
 fi
 
-# --- 6. Upload SSH key ---
-echo "=== 6. Uploading SSH key to GitHub ==="
-gh ssh-key add "${SSH_KEY}.pub" --title "bootstrap-$(hostname)" 2>/dev/null \
+# --- 5. Upload SSH key ---
+echo "=== 5. Uploading SSH key to GitHub ==="
+nix_gh ssh-key add "${SSH_KEY}.pub" --title "bootstrap-$(hostname)" 2>/dev/null \
   && echo "SSH key uploaded." \
   || echo "SSH key already on GitHub, skipping."
 
-# --- 7. Configure SSH for GitHub ---
-echo "=== 7. Configuring SSH for GitHub ==="
+# --- 6. Configure SSH for GitHub ---
+echo "=== 6. Configuring SSH for GitHub ==="
 SSH_CONFIG="$HOME/.ssh/config"
 if ! grep -q 'Host github.com' "$SSH_CONFIG" 2>/dev/null; then
   cat >> "$SSH_CONFIG" <<EOF
@@ -75,18 +70,18 @@ else
   echo "SSH config already set, skipping."
 fi
 
-# --- 8. Clone config ---
-echo "=== 8. Cloning dotfiles ==="
+# --- 7. Clone config ---
+echo "=== 7. Cloning dotfiles ==="
 if [ -d "$HM_CONFIG_DIR/.git" ]; then
   echo "Config exists, pulling latest..."
   git -C "$HM_CONFIG_DIR" pull
 else
   [ -d "$HM_CONFIG_DIR" ] && mv "$HM_CONFIG_DIR" "${HM_CONFIG_DIR}.bak"
-  gh repo clone "$DOTFILES_REPO" "$HM_CONFIG_DIR"
+  nix_gh repo clone "$DOTFILES_REPO" "$HM_CONFIG_DIR"
 fi
 
-# --- 9. User config ---
-echo "=== 9. Setting up user config ==="
+# --- 8. User config ---
+echo "=== 8. Setting up user config ==="
 USER_NIX="$HM_CONFIG_DIR/user.nix"
 if [ ! -f "$USER_NIX" ]; then
   read -rp "Full name (for git): " full_name
@@ -102,11 +97,13 @@ else
   echo "user.nix already exists, skipping."
 fi
 
-# --- 10. Capture token and remove temporary gh ---
-echo "=== 10. Removing temporary gh ==="
-GH_TOKEN="$(gh auth token)"
-nix profile remove '.*gh.*' 2>/dev/null || true
-echo "Temporary gh removed."
+# --- 9. Capture auth token ---
+echo "=== 9. Capturing GitHub auth token ==="
+GH_TOKEN="$(nix_gh auth token)"
+
+# --- 10. Remove leftover gh from profile (if any) ---
+echo "=== 10. Cleaning Nix profile ==="
+nix profile remove gh 2>/dev/null && echo "Removed stale gh from profile." || true
 
 # --- 11. Home Manager ---
 echo "=== 11. Applying Home Manager config ==="
