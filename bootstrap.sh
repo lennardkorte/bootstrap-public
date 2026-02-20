@@ -29,7 +29,7 @@ fi
 # --- 3. Temporary gh ---
 echo "=== 3. Installing gh (temporary) ==="
 if ! command -v gh &> /dev/null; then
-  nix profile install nixpkgs#gh
+  nix profile add nixpkgs#gh
 else
   echo "gh already installed, skipping."
 fi
@@ -37,7 +37,7 @@ fi
 # --- 4. GitHub auth ---
 echo "=== 4. GitHub authentication ==="
 if ! gh auth status &> /dev/null; then
-  gh auth login
+  gh auth login --hostname github.com --git-protocol ssh --web
 else
   echo "Already authenticated with GitHub."
 fi
