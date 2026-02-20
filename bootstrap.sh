@@ -7,7 +7,6 @@ HM_FLAKE="$HM_CONFIG_DIR#default"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 
 # --- 1. Nix ---
-echo "v7"
 echo "=== 1. Installing Nix ==="
 if ! command -v nix &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -102,18 +101,18 @@ else
   echo "user.nix already exists, skipping."
 fi
 
-# --- 10. Capture auth token ---
-echo "=== 10. Capturing GitHub auth token ==="
+# --- 10. Capture token and remove temporary gh ---
+echo "=== 10. Removing temporary gh ==="
 GH_TOKEN="$(gh auth token)"
+nix profile remove '.*gh.*' 2>/dev/null || true
+echo "Temporary gh removed."
 
 # --- 11. Home Manager ---
 echo "=== 11. Applying Home Manager config ==="
 nix run home-manager/master -- switch --flake "$HM_FLAKE" --impure -b bak
 
-# --- 12. Swap gh ---
-echo "=== 12. Replacing temporary gh with managed one ==="
-nix profile remove '.*gh.*' 2>/dev/null || true
-
+# --- 12. Restore gh auth ---
+echo "=== 12. Authenticating Home Manager-managed gh ==="
 HM_BIN="$HOME/.nix-profile/bin"
 echo "$GH_TOKEN" | "$HM_BIN/gh" auth login --with-token
 unset GH_TOKEN
