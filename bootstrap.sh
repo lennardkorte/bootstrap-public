@@ -7,7 +7,7 @@ HM_FLAKE="$HM_CONFIG_DIR#default"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 
 # --- 1. Nix ---
-echo "v5"
+echo "v6"
 echo "=== 1. Installing Nix ==="
 if ! command -v nix &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -59,11 +59,21 @@ gh ssh-key add "${SSH_KEY}.pub" --title "bootstrap-$(hostname)" 2>/dev/null \
   && echo "SSH key uploaded." \
   || echo "SSH key already on GitHub, skipping."
 
-# --- 7. Load SSH key into agent ---
-echo "=== 7. Loading SSH key into agent ==="
-eval "$(ssh-agent -s)" > /dev/null
-ssh-add "$SSH_KEY" 2>/dev/null
-echo "SSH key loaded."
+# --- 7. Configure SSH for GitHub ---
+echo "=== 7. Configuring SSH for GitHub ==="
+SSH_CONFIG="$HOME/.ssh/config"
+if ! grep -q 'Host github.com' "$SSH_CONFIG" 2>/dev/null; then
+  cat >> "$SSH_CONFIG" <<EOF
+
+Host github.com
+  IdentityFile $SSH_KEY
+  IdentitiesOnly yes
+EOF
+  chmod 600 "$SSH_CONFIG"
+  echo "SSH config updated."
+else
+  echo "SSH config already set, skipping."
+fi
 
 # --- 8. Clone config ---
 echo "=== 8. Cloning dotfiles ==="
