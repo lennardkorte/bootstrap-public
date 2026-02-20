@@ -11,11 +11,19 @@ nix_gh() { nix shell nixpkgs#gh --command gh "$@"; }
 
 # --- 1. Nix ---
 echo "=== 1. Installing Nix ==="
-if ! command -v nix &> /dev/null; then
-  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+if command -v nix &> /dev/null; then
+  echo "Nix already available, skipping."
+elif [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+  echo "Nix installed but not in PATH, sourcing..."
   . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 else
-  echo "Nix already installed, skipping."
+  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+  if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  else
+    echo "ERROR: Nix installation failed."
+    exit 1
+  fi
 fi
 
 # --- 2. Enable flakes ---
