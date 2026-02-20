@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DOTFILES_REPO="you/dotfiles"
+DOTFILES_REPO="lennardkorte/bootstrap"
 HM_CONFIG_DIR="$HOME/.config/home-manager"
 
 echo "=== 1. Installing Nix ==="
