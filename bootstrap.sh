@@ -47,7 +47,9 @@ fi
 # --- 5. GitHub auth ---
 echo "=== 5. GitHub authentication ==="
 if ! gh auth status &> /dev/null; then
-  gh auth login --hostname github.com --git-protocol ssh --ssh-key-title "bootstrap-$(hostname)" --web
+  gh auth login --hostname github.com --git-protocol ssh --skip-ssh-key --web
+  gh ssh-key add "${SSH_KEY}.pub" --title "bootstrap-$(hostname)"
+  echo "SSH key uploaded to GitHub."
 else
   echo "Already authenticated with GitHub."
 fi
